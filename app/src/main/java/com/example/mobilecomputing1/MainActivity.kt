@@ -3,13 +3,18 @@ package com.example.mobilecomputing1
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.room.Room
 import kotlinx.android.synthetic.main.activity_main.*
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
+import org.jetbrains.anko.uiThread
 
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         var fabOpened = false
 
         fab.setOnClickListener {
@@ -38,15 +43,34 @@ class MainActivity : AppCompatActivity() {
 
             val intent = Intent(applicationContext, MapActivity::class.java)
             startActivity(intent)
-
         }
+    }
 
-        val data = arrayOf("Oulu", "Helsinki","Tampere")
+    override fun onResume() {
+        super.onResume()
 
-        val reminderAdapter = ReminderAdapter(applicationContext,data)
-        list.adapter = reminderAdapter
+        refreshList()
+    }
 
+    private fun refreshList(){
+        doAsync {
 
+            val db = Room.databaseBuilder(applicationContext,AppDatabase::class.java,"reminders").build()
+            val reminders = db.reminderDao().getReminders()
+            db.close()
+
+            uiThread {
+
+                if (reminders.isNotEmpty()) {
+                    val adapter = ReminderAdapter(applicationContext, reminders)
+                    list.adapter = adapter
+
+                }else{
+                    toast("No reminders yet")
+                }
+
+            }
+        }
 
     }
 }
